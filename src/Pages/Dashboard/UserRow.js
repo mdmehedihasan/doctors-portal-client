@@ -4,10 +4,10 @@ import { toast } from 'react-toastify';
 const UserRow = ({ user, refetch }) => {
     const { email, role } = user;
     const makeAdmin = () => {
-        fetch(`http://localhost:5000/user/admin/${email}`, {
+        fetch(`https://mysterious-peak-70980.herokuapp.com/user/admin/${email}`, {
             method: 'PUT',
             headers: {
-                authorization: `Bearer${localStorage.getItem('accessToken')}`
+                authorization: `Bearer ${localStorage.getItem('accessToken')}`
             }
         })
             .then(res => {
@@ -19,7 +19,7 @@ const UserRow = ({ user, refetch }) => {
             .then(data => {
                 if (data.modifiedCount > 0) {
                     refetch();
-                    toast.success(`Successfully made an admin`)
+                    toast.success(`Successfully made an admin`);
                 }
 
             })

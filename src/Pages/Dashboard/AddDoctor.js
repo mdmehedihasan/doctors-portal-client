@@ -1,15 +1,78 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
+import { useQuery } from 'react-query';
+import { toast } from 'react-toastify';
+import Loading from '../Shared/Loading';
 
 const AddDoctor = () => {
-    const { register, formState: { errors }, handleSubmit } = useForm();
+    const { register, formState: { errors }, handleSubmit, reset } = useForm();
+
+    const { data: services, isLoading } = useQuery('services', () => fetch('http://localhost:5000/service').then(res => res.json()));
+
+    //imageBB api key
+    const imageStorageKey = '2fdb997ddb68d86ff96ba9862fb69461';
+
+
+    /***
+     * # 3 ways to store image
+     * 1.3rd party storage //free open public storage is ok for practice
+     * 2.Your own storage in your own server (file system)
+     * 3.Database: mongodb
+     * 
+     * YUP: to validate file: 
+     */
+
 
     const onSubmit = async data => {
-        console.log(data);
-        console.log('update done');
+        const image = data.image[0];
+        const formData = new FormData();
+        formData.append('image', image);
+        const url = `https://api.imgbb.com/1/upload?key=${imageStorageKey}`;
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const img = result.data.url;
+                    const doctor = {
+                        name: data.name,
+                        email: data.email,
+                        specialty: data.specialty,
+                        img: img
+                    }
+                    //send to your database
+                    fetch('http://localhost:5000/doctor', {
+                        method: 'POST',
+                        headers: {
+                            'content-type': 'application/json',
+                            authorization: `Bearer ${localStorage.getItem('accessToken')}`
+
+                        },
+                        body: JSON.stringify(doctor)
+                    })
+                        .then(res => res.json())
+                        .then(inserted => {
+                            if (inserted.insertedId) {
+                                toast.success('Doctor added successfully');
+                                reset();
+                            }
+                            else {
+                                toast.error('failed to add doctor');
+                            }
+                        })
+                }
+
+            })
 
         // navigate('/appointment');
     }
+
+    if (isLoading) {
+        return <Loading></Loading>
+    }
+
     return (
         <div>
             <h2 className="text-2xl">Add a new Doctor</h2>
@@ -32,6 +95,8 @@ const AddDoctor = () => {
 
                     </label>
                 </div>
+
+
 
 
                 <div className="form-control w-full max-w-xs">
@@ -59,21 +124,37 @@ const AddDoctor = () => {
                 </div>
 
 
+
                 <div className="form-control w-full max-w-xs">
                     <label className="label">
                         <span className="label-text">Specialty</span>
                     </label>
-                    <input type="text" placeholder="Your Specialization" className="input input-bordered w-full max-w-xs"
-                        {...register("specialty", {
+                    <select {...register('specialty')} className="select w-full max-w-xs input input-bordered mb-7 ">
+                        {
+                            services.map(service => <option
+                                key={service._id}
+                                value={service.name}
+                            >{service.name}</option>)
+                        }
+
+                    </select>
+
+                </div>
+
+                <div className="form-control w-full max-w-xs">
+                    <label className="label">
+                        <span className="label-text">Photo</span>
+                    </label>
+                    <input type="file" className=" w-full max-w-xs"
+                        {...register("image", {
                             required: {
                                 value: true,
-                                message: 'Specialization is required'
+                                message: 'Image  is required'
                             }
                         })}
                     />
                     <label className="label">
-                        {errors.password?.type === 'required' && <span className="label-text-alt text-red-600">{errors.password.message}</span>}
-                        {errors.password?.type === 'minLength' && <span className="label-text-alt text-red-600">{errors.password.message}</span>}
+                        {errors.name?.type === 'required' && <span className="label-text-alt text-red-600">{errors.name.message}</span>}
 
                     </label>
                 </div>
